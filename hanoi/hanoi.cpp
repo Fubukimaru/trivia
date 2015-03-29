@@ -120,8 +120,7 @@ void resolveSimple(vector<stack<int> > t) {
 		else {
 		//For odds
 			cout << "ODDS CASE!" << endl;
-			while(t[c].size() != MAX_N) {
-				cout << "MOOVING" << endl;
+			while(t[c].size() != MAX_N) {				
 				//make the legal move between pegs A and C
 				move(t,a,c);
 				//make the legal move between pegs A and B
@@ -131,6 +130,31 @@ void resolveSimple(vector<stack<int> > t) {
 			}
 
 		}
+	}
+}
+
+
+void resolvePivot(vector<stack<int> > t) {	
+	int nTowers=t.size();
+	if (nTowers != 3) {
+		cout << "Algorithm not applicable for the number of towers used." << endl;
+		return;
+	}
+	int smallPosition=0; //position of the small piece
+	while(t[nTowers-1].size() != MAX_N) {  
+		//Move small to the left
+		int smNext = smallPosition-1;
+		if (smNext < 0) smNext = nTowers-1;
+
+		move(t,smallPosition,smNext); //move to the left
+
+		//Find the only legal move that doesn't include the small one
+		int other = smNext-1;
+		if (other < 0) other = nTowers-1;
+		//Small piece is in smNext, so we will use other and smallPosition (which is the old position)
+		if (!move(t,smallPosition, other)) move(t, other, smallPosition); //If it's not old small -> other, try inverse.		
+
+		smallPosition=smNext;
 	}
 }
 
@@ -152,6 +176,22 @@ void playHanoi(vector<stack<int> > t) {
 }
 
 
+inline void selectSpeed() {
+	int speed;
+	cout << "Select speed: (1) Normal, (2) Fast or (any other key) FUCKING FAST" << endl;
+	cin >> speed;
+	switch(speed) {
+		case 1: //Normal (1s)
+			SLEEP_MS = 1000;
+			break;
+		case 2: //Fast (50ms)
+			SLEEP_MS = 50;
+			break;
+		default: //Otherwise... FUCKING FAST
+			break;
+	}
+}
+
 int main(){
 	int N_TOWERS=3;
 	vector<stack<int> > towers(N_TOWERS);
@@ -159,7 +199,7 @@ int main(){
 		towers[0].push(i);
 	}
 
-	cout << "Select mode: (1) Play, (2) Recursive resolution. Other keys -> quit" << endl;
+	cout << "Select mode: (1) Play, (2) Recursive resolution, (3) Simple iterative resolution (small as pivot). Other keys -> quit" << endl;
 	int mode;
 	cin >> mode;
 	switch(mode) {
@@ -168,20 +208,13 @@ int main(){
 			cout << ":) ";
 			break;
 		case 2:
-			int speed;
-			cout << "Select speed: (1) Normal, (2) Fast or (any other key) FUCKING FAST" << endl;
-			cin >> speed;
-			switch(speed) {
-				case 1: //Normal (1s)
-					SLEEP_MS = 1000;
-					break;
-				case 2: //Fast (50ms)
-					SLEEP_MS = 50;
-					break;
-				default: //Otherwise... FUCKING FAST
-					break;
-			}
+			selectSpeed();
 			resolveRecursiveStart(towers);
+			cout << ":) ";
+			break;
+		case 3:
+			selectSpeed();
+			resolvePivot(towers);
 			cout << ":) ";
 			break;
 		default:
