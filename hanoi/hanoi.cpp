@@ -1,10 +1,12 @@
 #include <iostream>
 #include <stack>          // std::stack
 #include <vector>
+#include <unistd.h>
 
 using namespace std;
 
 int MAX_N = 9;
+int SLEEP_MS = 0; //0ms by default
 
 void printEmptyRow() {
 	for(int i = 0; i < 2*MAX_N; ++i) {
@@ -29,7 +31,11 @@ void printStackLine(stack<int> &p) {
         p.pop();
 }
 
-void printStacks(vector<stack<int> > towers) {
+void waitNextFrame(){
+	usleep(SLEEP_MS*1000);
+}
+
+void printStacks(vector<stack<int> > towers, bool wait = true) {
 	vector<int> nEmptyRows(towers.size(),0);
 	for (int j = 0; j < towers.size(); ++j) {
 		nEmptyRows[j] = MAX_N - towers[j].size();	
@@ -55,15 +61,96 @@ void printStacks(vector<stack<int> > towers) {
 		cout << " ";
 	}
 	cout << endl;
+	//Wait for next "frame"
+	if (wait) waitNextFrame();
 }
 
 bool passConstraints(vector<stack<int> > &t, int o, int d) {
 	if (t[o].empty()) return false;
-	if (!t[d].empty()){
-		if (t[o].top() > t[d].top()) return false;
-	}
+	if (!t[d].empty() and t[o].top() > t[d].top()) return false;	
 	return true;
 }
+
+bool move(vector<stack<int> > &t, int o, int d, bool wait=true) {
+	if (passConstraints(t,o,d)) {
+		t[d].push(t[o].top());
+		t[o].pop();
+		printStacks(t,wait);
+		return true;
+	}
+	return false;
+}
+
+
+void resolveRecursive(vector<stack<int> > &t, int s, int d, int aux, int N) {
+	if (N == 1) move(t,s,d);
+	else {
+		resolveRecursive(t, s, aux, d, N-1);
+		move(t,s,d);
+		resolveRecursive(t,aux,d,s,N-1);
+	}
+}
+
+void resolveRecursiveStart(vector<stack<int> > t) {
+	if (t.size() != 3) cout << "Algorithm not applicable for the number of towers used." << endl;
+	else {
+		cout << "Starting recursive solution" << endl;
+		resolveRecursive(t,0,2,1,MAX_N);
+	}
+}
+
+void resolveSimple(vector<stack<int> > t) {	
+	if (t.size() != 3) cout << "Algorithm not applicable for the number of towers used." << endl;
+	else {
+		int a, b, c;
+		a = 0; b = 1; c = 2;
+		//2^n-1 moves
+		//For evens
+		if (MAX_N%2 == 0) {
+			cout << "EVENS CASE!" << endl;
+			while(t[c].size() != MAX_N) {     
+				//make the legal move between pegs A and B
+				move(t,a,b);
+				//make the legal move between pegs A and C
+				move(t,a,c);
+				//make the legal move between pegs B and C
+				move(t,b,c);
+			}
+		}
+		else {
+		//For odds
+			cout << "ODDS CASE!" << endl;
+			while(t[c].size() != MAX_N) {
+				cout << "MOOVING" << endl;
+				//make the legal move between pegs A and C
+				move(t,a,c);
+				//make the legal move between pegs A and B
+				move(t,a,b);
+				//make the legal move between pegs C and B
+				move(t,c,b);
+			}
+
+		}
+	}
+}
+
+void playHanoi(vector<stack<int> > t) {
+	int o,d;
+	int nTowers = t.size();
+	int destination = nTowers-1; //Last tower is the destination.
+	printStacks(t,false);
+	while (t[destination].size()!=MAX_N) {
+		cin >> o >> d;
+		--o; --d;
+		if (o < nTowers and d < nTowers and 0 <= o and 0 <= d) {
+			if (!move(t,o,d,false)) cout << "Input doesn't fulfill constraints" << endl;
+			//printStacks(t,false); //Print with no delay
+		}
+		else cout << "Wrong input" << endl;	
+	}
+
+}
+
 
 int main(){
 	int N_TOWERS=3;
@@ -71,23 +158,36 @@ int main(){
 	for (int i = MAX_N; i > 0; --i) {
 		towers[0].push(i);
 	}
-	printStacks(towers);
-	//towers[1].push(towers[0].top());
-	//towers[0].pop();
-	//printStacks(towers);
-	int o,d;
-	while (cin >> o >> d) {
-		--o; --d;
-		if (o < towers.size() and d < towers.size() and 0 <= o and 0 <= d) {
-			if (passConstraints(towers,o,d)) {
-				towers[d].push(towers[o].top());
-				towers[o].pop();
+
+	cout << "Select mode: (1) Play, (2) Recursive resolution. Other keys -> quit" << endl;
+	int mode;
+	cin >> mode;
+	switch(mode) {
+		case 1:
+			playHanoi(towers);
+			cout << ":) ";
+			break;
+		case 2:
+			int speed;
+			cout << "Select speed: (1) Normal, (2) Fast or (any other key) FUCKING FAST" << endl;
+			cin >> speed;
+			switch(speed) {
+				case 1: //Normal (1s)
+					SLEEP_MS = 1000;
+					break;
+				case 2: //Fast (50ms)
+					SLEEP_MS = 50;
+					break;
+				default: //Otherwise... FUCKING FAST
+					break;
 			}
-			else cout << "Input doesn't fulfill constraints" << endl;
-			printStacks(towers);
-		}
-		else cout << "Wrong input" << endl;
-	
+			resolveRecursiveStart(towers);
+			cout << ":) ";
+			break;
+		default:
+			cout << ":( ";	
 	}
+	cout << "Bye!" << endl;	
 }
+
 
